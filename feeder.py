@@ -1,7 +1,11 @@
 #!/usr/bin/python
 import time
 import RPi.GPIO as GPIO
+
 from hx711 import HX711
+from statusfile import StatusFile
+from statusfile import get_date_time
+
 import sys
 
 from datetime import datetime
@@ -90,6 +94,9 @@ def run_feed_motor(hx, direction='cw'):
 def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
     # global scale_offset
     wait_time = 0.02
+
+    sf = StatusFile('./status.json')
+
     while True:
         current_date = datetime.strftime(datetime.now(),"%m/%d/%Y")
         current_time = datetime.strftime(datetime.now(),"%H:%M") 
@@ -114,6 +121,11 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
             print("Checked weight of food at ",current_time,": ",format(val, '.3f'))
             
             # Run the feeder up to 40 bursts to 'fill' the bowl
+            if val < 0.1:
+                entry = dict()
+                entry['start_feed'] = current_time
+                entry['start_weight'] = val
+                details = list()
             while val < 0.1 and step_counter < 400:
                 GPIO.output(step_pin, True)
                 time.sleep(wait_time*3)
@@ -122,12 +134,19 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
                     val = get_weight(hx)
                     # Write the weight every 10 steps to the std out file
                     # The log will show an increase, hopefully, every 10 steps of the feed motor
-                    print(format(val, '.3f'))
+                    # print(format(val, '.3f'))
+                    details.append(format(val, '.3f'))
                 step_counter += 1
+            entry['end_weight'] = val
+
             feed_the_cat = False
             time.sleep(60)
             val = get_weight(hx)
-            print("Stable weight one minute after feed cycle:\n",format(val, '.3f'))
+            entry['stable_weight'] = val
+            entry['details'] = details
+            sf.add_status(entry)
+            
+            #print("Stable weight one minute after feed cycle:\n",format(val, '.3f'))
 
 def msg_listener(hx):
     # print('listener thread started')
