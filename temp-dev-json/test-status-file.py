@@ -24,14 +24,16 @@ class StatusFile():
     
     def add_status(self, o_json):
         if self.status_json:
-            # Open file for read/write, position is at the beginning of the file
+            # Open file for read/write
             j_file = open(self.file_path, 'r+')
             self.status_json = json.load(j_file)
-            #self.status_json['entries'].append(o_json)
             date_time = get_date_time()
             self.status_json['entries'][f'{date_time[0]}--{date_time[1]}'] = o_json
+            # We read the file above, set the file position back to the start 
+            # before writing everything (including the addition) back out to it
             j_file.seek(0)
             json.dump(self.status_json, j_file) # , indent=4)
+            j_file.close()
 
     def status_as_json(self):
         if self.file_path and os.path.isfile(self.file_path):
@@ -66,4 +68,6 @@ if __name__ == '__main__':
     print(f'There are {len(json_status["entries"])} entries in the file.')
     for key in json_status['entries']:
         print(key)
+
+    #print(status_file.status_as_json())
 
