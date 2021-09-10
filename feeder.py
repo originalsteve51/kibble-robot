@@ -121,12 +121,14 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
             print("Checked weight of food at ",current_time,": ",format(val, '.3f'))
             
             # Run the feeder up to 40 bursts to 'fill' the bowl
+            entry = dict()
+            food_dispensed = False
             if val < 0.1:
-                entry = dict()
                 entry['start_feed'] = current_time
                 entry['start_weight'] = val
                 details = list()
             while val < 0.1 and step_counter < 400:
+                food_dispensed = True
                 GPIO.output(step_pin, True)
                 time.sleep(wait_time*3)
                 GPIO.output(step_pin, False)
@@ -137,14 +139,14 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
                     # print(format(val, '.3f'))
                     details.append(format(val, '.3f'))
                 step_counter += 1
-            entry['end_weight'] = val
-
+            if food_dispensed:
+                entry['end_weight'] = val
+                time.sleep(60)
+                val = get_weight(hx)
+                entry['stable_weight'] = val
+                entry['details'] = details
+                sf.add_status(entry)
             feed_the_cat = False
-            time.sleep(60)
-            val = get_weight(hx)
-            entry['stable_weight'] = val
-            entry['details'] = details
-            sf.add_status(entry)
             
             #print("Stable weight one minute after feed cycle:\n",format(val, '.3f'))
 
