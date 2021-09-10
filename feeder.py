@@ -94,8 +94,10 @@ def run_feed_motor(hx, direction='cw'):
 def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
     # global scale_offset
     wait_time = 0.02
+    feed_threshold = 0.1
+    max_feed_steps = 400
 
-    sf = StatusFile('./status.json')
+    sf = StatusFile('/home/pi/mycode/stepper/kibble-robot/status.json')
 
     while True:
         current_date = datetime.strftime(datetime.now(),"%m/%d/%Y")
@@ -123,11 +125,11 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
             # Run the feeder up to 40 bursts to 'fill' the bowl
             entry = dict()
             food_dispensed = False
-            if val < 0.1:
+            if val < feed_threshold:
                 entry['start_feed'] = current_time
-                entry['start_weight'] = val
+                entry['start_weight'] = format(val, '.3f')
                 details = list()
-            while val < 0.1 and step_counter < 400:
+            while val < feed_threshold and step_counter < max_feed_steps:
                 food_dispensed = True
                 GPIO.output(step_pin, True)
                 time.sleep(wait_time*3)
@@ -140,15 +142,14 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
                     details.append(format(val, '.3f'))
                 step_counter += 1
             if food_dispensed:
-                entry['end_weight'] = val
+                entry['end_weight'] = format(val, '.3f')
                 time.sleep(60)
                 val = get_weight(hx)
-                entry['stable_weight'] = val
+                entry['stable_weight'] = format(val, '.3f')
                 entry['details'] = details
                 sf.add_status(entry)
             feed_the_cat = False
             
-            #print("Stable weight one minute after feed cycle:\n",format(val, '.3f'))
 
 def msg_listener(hx):
     # print('listener thread started')
@@ -171,7 +172,7 @@ def clean_up(motor_pin_list):
 
 if __name__ == '__main__':
     
-    feed_time_list = ["07:00","12:00","19:00", "23:00"]
+    feed_time_list = ["07:00","12:00","13:00", "19:00", "23:00"]
     
     # Motor control pins
     direction_pin = 25
