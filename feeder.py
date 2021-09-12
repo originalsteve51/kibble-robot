@@ -94,7 +94,12 @@ def run_feed_motor(hx, direction='cw'):
 def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
     # global scale_offset
     wait_time = 0.02
-    feed_threshold = 0.1
+
+    # set threshold to 0.0 for case where program starts with the correct
+    # amount of food in the bowl to begin with. As food is consumed, the
+    # apparent weight will go below 0.0. Then a feed cycle will bring
+    # it back to 0.0, which is the weight of food initially sensed.
+    feed_threshold = 0.0
     max_feed_steps = 400
 
     sf = StatusFile('/home/pi/mycode/stepper/kibble-robot/status.json')
@@ -117,6 +122,8 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
                 print(current_time, ":\n",format(val, '.3f'))
             time.sleep(55)
         else:
+            # we should feed the cat by topping the bowl off to reach the 
+            # value set in feed_threshold
             step_counter = 0
             val = get_weight(hx)
             print(current_date)
@@ -124,13 +131,11 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
             
             # Run the feeder up to 40 bursts to 'fill' the bowl
             entry = dict()
-            food_dispensed = False
             if val < feed_threshold:
                 entry['start_feed'] = current_time
                 entry['start_weight'] = format(val, '.3f')
                 details = list()
             while val < feed_threshold and step_counter < max_feed_steps:
-                food_dispensed = True
                 GPIO.output(step_pin, True)
                 time.sleep(wait_time*3)
                 GPIO.output(step_pin, False)
@@ -141,13 +146,16 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
                     # print(format(val, '.3f'))
                     details.append(format(val, '.3f'))
                 step_counter += 1
-            if food_dispensed:
-                entry['end_weight'] = format(val, '.3f')
-                time.sleep(60)
-                val = get_weight(hx)
-                entry['stable_weight'] = format(val, '.3f')
-                entry['details'] = details
-                sf.add_status(entry)
+
+            # whether or not food was dispensed, add a status entry. If no food was
+            # dispensed, details will be an empty list.
+            entry['end_weight'] = format(val, '.3f')
+            time.sleep(60)
+            val = get_weight(hx)
+            entry['stable_weight'] = format(val, '.3f')
+            entry['details'] = details
+            sf.add_status(entry)
+
             feed_the_cat = False
             
 
