@@ -131,10 +131,9 @@ def auto_feed(feed_times, direction_pin, step_pin, hx, feed_the_cat=False):
             
             # Run the feeder up to 40 bursts to 'fill' the bowl
             entry = dict()
-            if val < feed_threshold:
-                entry['start_feed'] = current_time
-                entry['start_weight'] = format(val, '.3f')
-                details = list()
+            entry['start_feed'] = current_time
+            entry['start_weight'] = format(val, '.3f')
+            details = list()
             while val < feed_threshold and step_counter < max_feed_steps:
                 GPIO.output(step_pin, True)
                 time.sleep(wait_time*3)
