@@ -179,7 +179,7 @@ def clean_up(motor_pin_list):
 
 if __name__ == '__main__':
     
-    feed_time_list = ["07:00","12:00","13:00", "19:00", "23:00"]
+    feed_time_list = ["07:00","13:00","19:00", "01:00"]
     
     # Motor control pins
     direction_pin = 25
